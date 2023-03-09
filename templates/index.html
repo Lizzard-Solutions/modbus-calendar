@@ -1,0 +1,584 @@
+{{define "calendar"}}
+
+<html>
+
+<head>
+    <title>Calendar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <style>
+        /*
+   i wish this required CSS was better documented :(
+  https://github.com/FezVrasta/popper.js/issues/674
+      derived from this CSS on this page: https://popper.js.org/tooltip-examples.html
+ */
+
+        .popper,
+        .tooltip {
+            position: absolute;
+            z-index: 9999;
+            background: #FFC107;
+            color: black;
+            width: 150px;
+            border-radius: 3px;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .style5 .tooltip {
+            background: #1E252B;
+            color: #FFFFFF;
+            max-width: 200px;
+            width: auto;
+            font-size: .8rem;
+            padding: .5em 1em;
+        }
+
+        .popper .popper__arrow,
+        .tooltip .tooltip-arrow {
+            width: 0;
+            height: 0;
+            border-style: solid;
+            position: absolute;
+            margin: 5px;
+        }
+
+        .tooltip .tooltip-arrow,
+        .popper .popper__arrow {
+            border-color: #FFC107;
+        }
+
+        .style5 .tooltip .tooltip-arrow {
+            border-color: #1E252B;
+        }
+
+        .popper[x-placement^="top"],
+        .tooltip[x-placement^="top"] {
+            margin-bottom: 5px;
+        }
+
+        .popper[x-placement^="top"] .popper__arrow,
+        .tooltip[x-placement^="top"] .tooltip-arrow {
+            border-width: 5px 5px 0 5px;
+            border-left-color: transparent;
+            border-right-color: transparent;
+            border-bottom-color: transparent;
+            bottom: -5px;
+            left: calc(50% - 5px);
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        .popper[x-placement^="bottom"],
+        .tooltip[x-placement^="bottom"] {
+            margin-top: 5px;
+        }
+
+        .tooltip[x-placement^="bottom"] .tooltip-arrow,
+        .popper[x-placement^="bottom"] .popper__arrow {
+            border-width: 0 5px 5px 5px;
+            border-left-color: transparent;
+            border-right-color: transparent;
+            border-top-color: transparent;
+            top: -5px;
+            left: calc(50% - 5px);
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        .tooltip[x-placement^="right"],
+        .popper[x-placement^="right"] {
+            margin-left: 5px;
+        }
+
+        .popper[x-placement^="right"] .popper__arrow,
+        .tooltip[x-placement^="right"] .tooltip-arrow {
+            border-width: 5px 5px 5px 0;
+            border-left-color: transparent;
+            border-top-color: transparent;
+            border-bottom-color: transparent;
+            left: -5px;
+            top: calc(50% - 5px);
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .popper[x-placement^="left"],
+        .tooltip[x-placement^="left"] {
+            margin-right: 5px;
+        }
+
+        .popper[x-placement^="left"] .popper__arrow,
+        .tooltip[x-placement^="left"] .tooltip-arrow {
+            border-width: 5px 0 5px 5px;
+            border-top-color: transparent;
+            border-right-color: transparent;
+            border-bottom-color: transparent;
+            right: -5px;
+            top: calc(50% - 5px);
+            margin-left: 0;
+            margin-right: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#eventModal"
+        onClick="setOperation(`add`);">
+        Add
+    </button>
+    <div id='calendar'></div>
+    <div id="eventModal" class="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Event</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="eventForm" onsubmit="upsertEvent(event)">
+                    <div class="modal-body">
+
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Start Time</label>
+                                    <input type="time" name="FromTime" class="form-control" id="startTime"
+                                        aria-describedby="startTime" placeholder="" name="FromTime" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>End Time</label>
+                                    <input type="time" name="ToTime" class="form-control" id="endTime"
+                                        aria-describedby="endTime" placeholder="" name="ToTime" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Day</label>
+                                    <select class="form-control" id="day" name="Day" value="" required>
+                                        <option value="monday">Monday</option>
+                                        <option value="tuesday">Tuesday</option>
+                                        <option value="wednesday">Wednesday</option>
+                                        <option value="thursday">Thursday</option>
+                                        <option value="friday">Friday</option>
+                                        <option value="saturday">Saturday</option>
+                                        <option value="sunday">Sunday</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Mode</label>
+                                    <select name="Mode" class="form-control" id="mode" required>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="exampleInputEmail1">Temperature - <span id="tempVal"
+                                        value=""></span></label>
+
+                                <input type="range" name="Temperature" start=10 end=40 step=1 class="form-range"
+                                    onchange="setValue(this);" id="temperature" aria-describedby="temperature"
+                                    placeholder="">
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                        <button type="button" class="btn btn-danger" onClick="deleteEvent();">Delete Event</button>
+                    </div>
+                    <input type="hidden" value="" name="Id" id="id" />
+                    <input type="hidden" value="" name="Hvac" id="hvac" />
+                </form>
+            </div>
+        </div>
+        <input type="hidden" value={{.APPURL}} id="appUrl" />
+    </div>
+    <script>
+        const date = "1970-01-05"
+        var operation;
+        var calendar;
+        const APPURL = document.getElementById("appUrl").val();
+       
+        document.addEventListener("DOMContentLoaded", function () {
+            getConfigAndMode();
+            var calendarEl = document.getElementById("calendar");
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                // Demo License
+                schedulerLicenseKey: "CC-Attribution-NonCommercial-NoDerivatives",
+
+                // Bootstrap Theme
+                themeSystem: 'bootstrap5',
+
+                // Enable Drag Support
+                editable: true,
+
+                // Helps with the epoch conversion, maintains integrity across timezones
+                timezone: "local",
+                // Default Day Week
+                initialView: "timeGrid",
+                // Need all 7 days to show up
+                duration: { days: 7 },
+                // Start from Monday
+                initialDate: date,
+
+                // Disable headertoolbar
+                headerToolbar: "",
+
+                // Drag Listener
+                eventDrop: eventUpdated,
+
+                // Hide dates from top
+                dayHeaderFormat: { weekday: "long" },
+
+                // Edit Popup
+                eventClick: showModal,
+
+                // Hover Popup
+
+            });
+            calendar.render();
+            getAllEvents();
+            var view = calendar.view;
+            console.log("The view's title is " + view.title);
+
+        });
+
+
+        function newEvent(startEpoch, endEpoch, hvac, mode, temperature, id, day) {
+
+            calendar.addEvent({
+                title: "dynamic event",
+                start: new Date(startEpoch).toISOString(),
+                end: new Date(endEpoch).toISOString(),
+                id: id,
+                extendedProps: {
+                    backend_id: id,
+                    hvac: hvac,
+                    mode: mode,
+                    temperature: temperature,
+                    startTime: startEpoch,
+                    endTime: endEpoch,
+                    day: day,
+                }
+            });
+
+        }
+
+        // Fetch All Events
+        function getAllEvents() {
+            // Clear All Calendar Events
+            calendar.removeAllEvents();
+
+            // newEvent(377176046, 377230046, "HVAC 1", "2", 30);
+            var startEpoch, hvac, mode, temperature, endEpoch, id, day;
+            hvac = $('#hvac').val();
+            $.ajax({
+                url: APPURL + "datacalc?hvac=" + hvac,
+                dataType: 'json',
+                type: 'GET',
+                success: function (result) {
+                    console.log(result.Payload);
+                    if (result.Payload !== null) {
+                        for (const [index, data] of result.Payload.entries()) {
+                            console.log("data", data)
+                            for ([key, value] of Object.entries(data)) {
+                                switch (key) {
+                                    case "FromTime":
+                                        startEpoch = value
+                                        break;
+                                    case "Hvac":
+                                        hvac = value
+                                        break;
+                                    case "Mode":
+                                        mode = value
+                                        break;
+                                    case "Temperature":
+                                        temperature = value
+                                        break;
+                                    case "ToTime":
+                                        endEpoch = value
+                                        break;
+                                    case "_id":
+                                        id = value
+                                        break;
+                                    case "Day":
+                                        day = value
+                                        break;
+                                }
+                            }
+                            newEvent(startEpoch, endEpoch, hvac, mode, temperature, id, day);
+                            { {/*  newEvent(369000, 372600, "HVAC 1", "1", 50);  */ } }
+                            { {/*  newEvent(345600000, 349600000, "HVAC 1", "2", 30);  */ } }
+
+                        }
+                    }
+                },
+                error: function (xhr, resp, text) {
+                    console.log(xhr, resp, text);
+                }
+            });
+
+        }
+
+        function eventUpdated(info) {
+            console.log("Event Updated");
+            console.log(info.event)
+            console.log(info.event.title, info.event.start, info.event.end,
+                info.event.extendedProps.hvac);
+
+
+            data = {
+                Id: info.event.extendedProps.backend_id,
+                FromTime: new Date(info.event.start).valueOf(),
+                ToTime: new Date(info.event.end).valueOf(),
+                Temperature: info.event.extendedProps.temperature,
+                Mode: info.event.extendedProps.mode,
+                Hvac: info.event.extendedProps.hvac,
+                Day: getDayName(new Date(info.event.start).getDay())
+            }
+            updateEventRequest(data);
+        }
+
+        function getTime(date) {
+            hours = date.getHours()
+            if (hours < 10) { hours = "0" + hours }
+            minutes = date.getMinutes()
+            if (minutes < 10) { minutes = "0" + minutes }
+            return hours + ":" + minutes
+        }
+
+        function showModal(info) {
+            console.log(info)
+            setOperation("update");
+            $('#eventModal').modal('toggle')
+            console.log(info.event)
+            $('#startTime').val(getTime(info.event.start))
+            $('#endTime').val(getTime(info.event.end))
+            $('#hvac').val(info.event.extendedProps.hvac)
+            $('#mode').val(info.event.extendedProps.mode)
+            $('#temperature').val(info.event.extendedProps.temperature)
+            $('#id').val(info.event.extendedProps.backend_id)
+            $('#day').val(info.event.extendedProps.day)
+            $('#tempVal').text(info.event.extendedProps.temperature)
+        }
+
+        function getConfigAndMode() {
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+            const config2 = urlParams.get('config');
+            var config1 = decodeURIComponent(config2);
+            var config = JSON.parse(config1);
+            const HVAC = config.hvac;
+            $('#hvac').val(HVAC);
+            const mode_arr = config.mode
+            addOptions("mode", mode_arr)
+        }
+
+        function addOptions(id, arr) {
+            const selectObj = document.getElementById(id)
+            for (const [index, a] of arr.entries()) {
+                if (id == "mode") {
+                    var mode;
+                    var name;
+                    const opt = document.createElement('option');
+                    for ([key, value] of Object.entries(a)) {
+                        if (key == "mode") {
+                            opt.value = value;
+                        } else {
+                            opt.innerHTML = value;
+                        }
+                        selectObj.appendChild(opt);
+                    }
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = a;
+                    opt.innerHTML = a;
+                    selectObj.appendChild(opt);
+                }
+            }
+        }
+
+
+        function saveEvent(data) {
+            $.ajax({
+                url: APPURL + "datacalc",
+                type: "PUT",
+                dataType: "json",
+                data: JSON.stringify(data),
+                success: function (result) {
+                    // you can see the result from the console
+                    // tab of the developer tools
+                    console.log(result);
+                    alert(result.Message);
+                    document.getElementById("eventForm").reset();
+                    getAllEvents();
+                },
+                error: function (xhr, resp, text) {
+                    alert("Connectivity Issue, Server Offline. Please Try again")
+                    console.log(xhr, resp, text);
+                }
+            })
+        }
+
+        function hookPopUp(info) {
+            info.el.outerHTML += `
+                    <div class="popup card d-none" style="width: 18rem;">
+                    <div class="card-body">
+                    <h5 class="card-title">Card title</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6>
+                    <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    <a href="#" class="card-link">Card link</a>
+                    <a href="#" class="card-link">Another link</a>
+                    </div>
+                    </div>
+                    `
+        }
+
+        function showPopUp(info) {
+            console.log(info.el)
+        }
+
+        function inpHandleFormSubmitToJson(inpFormDataId) {
+            const AllFormDataObject = new FormData(inpFormDataId);
+            return { "formData": Object.fromEntries(AllFormDataObject.entries()) };
+        }
+
+        function getEpoch(day, time) {
+            switch (day) {
+                case "monday":
+                    return convertToEpoch("1970-01-05", time)
+                    break;
+                case "tuesday":
+                    return convertToEpoch("1970-01-06", time)
+                    break;
+                case "wednesday":
+                    return convertToEpoch("1970-01-07", time)
+                    break;
+                case "thursday":
+                    return convertToEpoch("1970-01-08", time)
+                    break;
+                case "friday":
+                    return convertToEpoch("1970-01-09", time)
+                    break;
+                case "saturday":
+                    return convertToEpoch("1970-01-10", time)
+                    break;
+                case "sunday":
+                    return convertToEpoch("1970-01-11", time)
+                    break;
+            }
+        }
+
+        function convertToEpoch(date, time) {
+            console.log(date)
+            console.log(time)
+            let dateToConv = new Date(date + " " + time)
+            console.log(dateToConv)
+            var epochTime = dateToConv.getTime();
+            console.log(epochTime)
+            return epochTime;
+        }
+
+        function updateEventRequest(data) {
+            $.ajax({
+                url: APPURL + "datacalc",
+                type: "POST",
+                dataType: "json",
+                data: JSON.stringify(data),
+                success: function (result) {
+                    console.log(result);
+                    alert(result.Message);
+                    getAllEvents();
+                },
+                error: function (xhr, resp, text) {
+                    alert("Connectivity Issue, Server Offline. Please Try again")
+                    console.log(xhr, resp, text);
+                }
+            })
+        }
+
+        function setOperation(value) {
+            document.getElementById("eventForm").reset();
+            operation = value
+        }
+
+        function upsertEvent(event) {
+            event.preventDefault();
+            data = inpHandleFormSubmitToJson(event.target)
+            data = data.formData
+            data.FromTime = getEpoch(data.Day, data.FromTime)
+            data.ToTime = getEpoch(data.Day, data.ToTime)
+            if (operation == "update") {
+                updateEventRequest(data);
+            } else {
+                saveEvent(data);
+            }
+        }
+
+        function deleteEvent() {
+            id = $('#id').val();
+            data = {
+                Id: id,
+            }
+            $.ajax({
+                url: APPURL + "datacalc",
+                type: "DELETE",
+                dataType: "json",
+                data: JSON.stringify(data),
+                success: function (result) {
+                    console.log(result);
+                    alert(result.Message);
+                    getAllEvents();
+                },
+                error: function (xhr, resp, text) {
+                    alert("Connectivity Issue, Server Offline. Please Try again")
+                    console.log(xhr, resp, text);
+                }
+            })
+        }
+
+        function setValue(spanObj) {
+            $('#tempVal').text(spanObj.value)
+        }
+
+        function getDayName(day) {
+            switch (day) {
+                case 0:
+                    return "sunday"
+                case 1:
+                    return "monday"
+                case 2:
+                    return "tuesday"
+                case 3:
+                    return "wednesday"
+                case 4:
+                    return "thursday"
+                case 5:
+                    return "friday"
+                case 6:
+                    return "saturday"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.4/index.global.min.js"></script>
+    <script src='https://unpkg.com/popper.js/dist/umd/popper.min.js'></script>
+    <script src='https://unpkg.com/tooltip.js/dist/umd/tooltip.min.js'></script>
+</body>
+
+</html>
+
+{{end}}
