@@ -262,8 +262,9 @@ func JsonEncode(str_msg interface{}) string {
 func StartMqtt() mqtt.Client {
 	var broker = os.Getenv("MQTT_BROKER_URL")
 	var port = os.Getenv("MQTT_BROKER_PORT")
+	log.Println(broker, port)
 	opts := mqtt.NewClientOptions()
-	opts.AddBroker(fmt.Sprintf("tcp://%s:%d", broker, port))
+	opts.AddBroker(fmt.Sprintf("tcp://%s:%s", broker, port))
 	opts.SetClientID("go_mqtt_client")
 	opts.SetUsername("emqx")
 	opts.SetPassword("public")

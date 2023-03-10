@@ -5,7 +5,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - MQTT_BROKER_URL=localhost
+      - MQTT_BROKER_URL=mqtt
       - MQTT_BROKER_PORT=1883
       - DBConnection="mongodb://mongo:27017"
       - DB_USER=reak
@@ -26,14 +26,14 @@ services:
     depends_on:
       - mqtt
       - mongo
-    restart: always
+    #restart: always
   mqtt:
     image: eclipse-mosquitto:latest
     ports:
       - "1883:1883"
       - "9001:9001"
-    #volumes:
-      #- ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
   mongo:
     image: mongo:latest
     volumes:
